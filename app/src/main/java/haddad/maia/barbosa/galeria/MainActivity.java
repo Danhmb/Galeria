@@ -1,15 +1,22 @@
 package haddad.maia.barbosa.galeria;
 
+import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -17,11 +24,18 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
+import java.io.IOException;
+
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     static int RESULT_TAKE_PICTURE = 1;
+
+    static int RESULT_REQUEST_PERMISSION = 2;
+
 
     String currentPhotoPath;
 
@@ -56,6 +70,42 @@ public class MainActivity extends AppCompatActivity {
         i.putExtra("photo_path",photoPath);
         startActivity(i);
     }
+    public void checkForPermissions(List<String> permissions){
+        List<String> permissionsNotGaranted = new ArrayList<>();
+        for(String permission : permissions){
+            if( !hasPermission(permission)){
+                permissionsNotGaranted.add(permission);
+            }
+        }
+        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.M){
+            if(permissionsNotGaranted.size() > 0){
+                requestPermissions(permissionsNotGaranted.toArray(new String[permissionsNotGaranted.size()]),RESULT_REQUEST_PERMISSION);
+            }
+        }
+    }
+    private void dispatchTakePictureIntent(){
+        File f = null;
+        try{
+            f = createImageFile();
+        }catch (IOException e){
+            Toast.makeText(MainActivity.this,"Não foi possível criar arquivo",Toast.LENGTH_LONG).show();
+            return;
+        }
+        currentPhotoPath = f.getAbsolutePath();
+        if(f != null){
+            Uri fUri = FileProvider.getUriForFile(MainActivity.this,"haddad.maia.barbosa.galeria.fileprovider",f);
+            Intent i = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            startActivityForResult(i,RESULT_TAKE_PICTURE);
+        }
+    }
+
+    private File createImageFile() throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp;
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File f = File.createTempFile(imageFileName,".jpg",storageDir);
+        return f;
+    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu){
         super.onCreateOptionsMenu(menu);
@@ -63,14 +113,26 @@ public class MainActivity extends AppCompatActivity {
         inflater.inflate(R.menu.main_activity_tb, menu);
         return true;
         }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data){
+        super.onActivityResult(requestCode,resultCode,data);
+        if(requestCode == RESULT_TAKE_PICTURE){
+            if(resultCode == Activity.RESULT_OK){
+                photos.add(currentPhotoPath);
+                mainAdapter.notifyItemInserted(photos.size()-1);
+            }else{
+                File f = new File(currentPhotoPath);
+                f.delete();
+            }
+        }
+    }
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item){
-        switch (item.getItemId()){
-            case R.id.opCamera:
-                dispatchTakePictureIntent();
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
+        if (item.getItemId() == R.id.opCamera) {
+            dispatchTakePictureIntent();
+            return true;
         }
+        return super.onOptionsItemSelected(item);
     }
 }

@@ -51,12 +51,10 @@ public class PhotoActivity extends AppCompatActivity {
     }
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item){
-        switch (item.getItemId()){
-            case R.id.opShare:
-                sharePhoto();
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
+        if (item.getItemId() == R.id.opShare) {
+            sharePhoto();
+            return true;
         }
+        return super.onOptionsItemSelected(item);
     }
 }
