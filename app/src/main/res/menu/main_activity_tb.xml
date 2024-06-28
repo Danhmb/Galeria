@@ -5,6 +5,6 @@
     <item
         android:id="@+id/opCamera"
         android:icon="@android:drawable/ic_menu_camera"
-        android:title="Tirar Foto"
+        android:title="TirarFoto"
         app:showAsAction="ifRoom" />
 </menu>
